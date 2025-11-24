@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 스터디 상태 enum
+enum StudyStatus {
+  CREATED
+  UPDATED
+  DELETED
+}
+
+// study 테이블
+model Study {
+  studyId           Int         @id @default(autoincrement()) @map("study_id")
+  nickname          String      @db.VarChar(40)
+  title             String      @db.VarChar(100)
+  description       String?     @db.Text
+  backgroundImage   String?     @map("background_image") @db.VarChar(40)
+  encryptedPassword String      @map("encrypted_password") @db.VarChar(255)
+  totalPoints       Int         @default(0) @map("total_points")
+  status            StudyStatus @default(CREATED)
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  // 관계들 (전부 다 study와 일대다 관계)
+  habits         Habit[]
+  habitChecks    HabitCheck[]
+  focusLogs      FocusLog[]
+  pointHistories PointHistory[]
+  emojis         Emoji[]
+
+  @@map("study")
+}
+
+// habit 테이블
+model Habit {
+  habitId   Int      @id @default(autoincrement()) @map("habit_id")
+  studyId   Int      @map("study_id")
+  name      String   @db.VarChar(80)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 관계
+  study       Study        @relation(fields: [studyId], references: [studyId])
+  habitChecks HabitCheck[]
+
+  @@map("habit")
+}
+
+// habit_check 테이블
+model HabitCheck {
+  habitCheckId Int @id @default(autoincrement()) @map("habit_check_id")
+  habitId      Int @map("habit_id")
+  studyId      Int @map("study_id")
+
+  mon  Boolean @default(false)
+  tue  Boolean @default(false)
+  wed  Boolean @default(false)
+  thur Boolean @default(false)
+  fri  Boolean @default(false)
+  sat  Boolean @default(false)
+  sun  Boolean @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // 관계
+  habit Habit @relation(fields: [habitId], references: [habitId])
+  study Study @relation(fields: [studyId], references: [studyId])
+
+  @@map("habit_check")
+}
+
+// focus_log 테이블
+model FocusLog {
+  focusLogId     Int      @id @default(autoincrement()) @map("focus_log_id")
+  studyId        Int      @map("study_id")
+  plannedMinutes Int      @map("planned_minutes")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // 관계
+  study        Study         @relation(fields: [studyId], references: [studyId])
+  pointHistory PointHistory? // point_history와는 일대일 관계
+
+  @@map("focus_log")
+}
+
+// point_history 테이블
+model PointHistory {
+  pointHistoryId Int      @id @default(autoincrement()) @map("point_history_id")
+  focusLogId     Int      @unique @map("focus_log_id")
+  studyId        Int      @map("study_id")
+  pointAmount    Int      @map("point_amount")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // 관계
+  focusLog FocusLog @relation(fields: [focusLogId], references: [focusLogId])
+  study    Study    @relation(fields: [studyId], references: [studyId])
+
+  @@map("point_history")
+}
+
+// emoji 테이블
+model Emoji {
+  emojiId   Int      @id @default(autoincrement()) @map("emoji_id")
+  studyId   Int      @map("study_id")
+  emojiCode String   @map("emoji_code") @db.VarChar(20)
+  count     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // 관계
+  study Study @relation(fields: [studyId], references: [studyId])
+
+  // 같은 스터디에서 같은 emojiCode는 한 번만
+  @@unique([studyId, emojiCode])
+  @@map("emoji")
+}

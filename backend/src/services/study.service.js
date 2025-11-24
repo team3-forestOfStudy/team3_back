@@ -22,7 +22,7 @@ export async function createStudy(data) {
   return newStudy;
 }
 
-//📘  스터디 상세 조회 함수 (DB 조회 및 데이터 가공)
+// 📘  스터디 상세 조회 함수 (DB 조회 및 데이터 가공)
 export async function getStudyDetail(studyId) {
   // 스터디 기본 정보
   const study = await prisma.study.findUnique({
@@ -72,4 +72,31 @@ export async function getStudyDetail(studyId) {
     topEmojis: study.emojis,
     habitRecords: habitRecords,
   };
+}
+
+// 📘  스터디 목록 조회 함수 (DB 조회 및 데이터 가공)
+export async function getStudyList() {
+  const studies = await prisma.study.findMany({
+    where: {
+      status: {
+        not: "DELETED", // 삭제된 스터디는 목록 조회에서 나타나지 않게 하기
+      },
+    },
+    orderBy: {
+      createdAt: "desc", // 최신순으로 정렬하기
+    },
+    select: {
+      studyId: true,
+      nickname: true,
+      title: true,
+      description: true,
+      backgroundImage: true,
+      totalPoints: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    }, // 비밀번호는 목록에 필요없어서 제외함
+  });
+
+  return studies;
 }

@@ -121,3 +121,20 @@ export async function getStudyDetail(req, res, next) {
     next(error); // 예상하지 못한 에러는 미들웨어에 넘기기!
   }
 }
+
+// 📘 스터디 목록 조회 컨트롤러 (GET /api/studies)
+export async function getStudyList(req, res, next) {
+  try {
+    // 1. service 호출 → DB 조회
+    const studies = await studyService.getStudyList(); // 검색, 정렬, 페이지네이션은 다음에 만들도록 하겠습니다~
+
+    // 2. 응답
+    return res.status(200).send({
+      result: "success",
+      message: "스터디 목록이 성공적으로 조회되었습니다!",
+      data: studies,
+    });
+  } catch (error) {
+    next(error); // 예상하지 못한 에러는 미들웨어에 넘기기!
+  }
+}

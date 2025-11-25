@@ -74,29 +74,90 @@ export async function getStudyDetail(studyId) {
   };
 }
 
-// 📘  스터디 목록 조회 함수 (DB 조회 및 데이터 가공)
-export async function getStudyList() {
-  const studies = await prisma.study.findMany({
-    where: {
-      status: {
-        not: "DELETED", // 삭제된 스터디는 목록 조회에서 나타나지 않게 하기
-      },
+// 📘  스터디 목록 조회 함수 (DB 조회 및 데이터 가공 / 검색 + 정렬 + 페이지네이션(더보기))
+export async function getStudyList({
+  page = 1,
+  pageSize = 6,
+  keyword,
+  sort = "recent",
+}) {
+  // 1. 모든 쿼리에 적용되는 기본 where 조건 설정
+  const where = {
+    status: {
+      not: "DELETED", // 삭제된 스터디는 목록 조회에서 나타나지 않게 하기
     },
-    orderBy: {
-      createdAt: "desc", // 최신순으로 정렬하기
-    },
-    select: {
-      studyId: true,
-      nickname: true,
-      title: true,
-      description: true,
-      backgroundImage: true,
-      totalPoints: true,
-      status: true,
-      createdAt: true,
-      updatedAt: true,
-    }, // 비밀번호는 목록에 필요없어서 제외함
-  });
+  };
 
-  return studies;
+  // 2. 검색어가 있으면 nickname, title, descriotion에서 검색
+  let word = "";
+
+  if (typeof keyword === "string") {
+    word = keyword.normalize().trim(); // normalize() 메서드는 서로 다른 방식으로 인코딩된 문자열을 하나의 통일된 형식으로 변환하여 문자열 비교나 검색 시 오류를 방지하는 역할
+  }
+
+  if (word.length > 0) {
+    where.OR = [
+      { nickname: { contains: word, mode: "insensitive" } },
+      { title: { contains: word, mode: "insensitive" } },
+      { description: { contains: word, mode: "insensitive" } },
+    ];
+  }
+
+  // 3. 정렬 옵션
+  let orderBy;
+  switch (sort) {
+    case "oldest": // 오래된 순
+      orderBy = { createdAt: "asc" };
+      break;
+    case "points_desc": // 많은 포인트 순
+      orderBy = { totalPoints: "desc" };
+      break;
+    case "points_asc": // 적은 포인트 순
+      orderBy = { totalPoints: "asc" };
+      break;
+    case "recent": // 최근 순
+    default:
+      orderBy = { createdAt: "desc" };
+      break;
+  }
+
+  // 4. Prisma의 skip 옵션에 필요한 건너뛸 스터디 수를 계산
+  const skip = (page - 1) * pageSize;
+
+  // 5. totalCount + 실제 데이터 조회
+  const [totalCount, studies] = await Promise.all([
+    prisma.study.count({ where }),
+    prisma.study.findMany({
+      where,
+      orderBy,
+      skip,
+      take: pageSize,
+      include: {
+        emojis: {
+          orderBy: { count: "desc" },
+          take: 3,
+        }, // 홈페이지의 스터디 카드에서 이모지 3개 보이니까!
+      },
+    }),
+  ]); // totalCount랑 studies는 서로 독립적인 DB 작업이라서 서로의 결과를 기다릴 필요 X, 따라서 Promisa.all 사용!
+
+  // 6. 프론트에 넘길 데이터: 비밀번호는 빼기!
+  const studyList = studies.map((study) => ({
+    studyId: study.studyId,
+    nickname: study.nickname,
+    title: study.title,
+    description: study.description,
+    backgroundImage: study.backgroundImage,
+    totalPoints: study.totalPoints,
+    createdAt: study.createdAt,
+    topEmojis: study.emojis,
+  }));
+
+  return {
+    studies: studyList,
+    pagination: {
+      totalCount,
+      hasNextPage: page * pageSize < totalCount,
+    },
+  };
 }

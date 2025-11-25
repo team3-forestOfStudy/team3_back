@@ -31,7 +31,7 @@ export async function createStudy(req, res, next) {
       !password?.trim() ||
       !passwordConfirm?.trim()
     ) {
-      return res.status(400).json({
+      return res.status(400).send({
         result: "fail",
         message:
           "닉네임, 스터디 이름, 비밀번호, 비밀번호 확인은 필수로 작성해야합니다.",
@@ -125,14 +125,44 @@ export async function getStudyDetail(req, res, next) {
 // 📘 스터디 목록 조회 컨트롤러 (GET /api/studies)
 export async function getStudyList(req, res, next) {
   try {
-    // 1. service 호출 → DB 조회
-    const studies = await studyService.getStudyList(); // 검색, 정렬, 페이지네이션은 다음에 만들도록 하겠습니다~
+    const { page = "1", pageSize = "6", keyword, sort = "recent" } = req.query;
 
-    // 2. 응답
+    // 쿼리 파라미터는 문자열이기 때문에 숫자로 변환!
+    const pageNumber = Number(page);
+    const pageSizeNumber = Number(pageSize);
+
+    // 1. 유효성 검사
+    if (
+      !Number.isInteger(pageNumber) ||
+      pageNumber <= 0 ||
+      !Number.isInteger(pageSizeNumber) ||
+      pageSizeNumber <= 0
+    ) {
+      return res.status(400).send({
+        result: "fail",
+        message: "page와 pageSize는 1이상의 정수이어야 합니다.",
+        data: null,
+      });
+    } // (Number.isInteger는 값이 정수인지 확인하는 자바스크립트 메소드)
+
+    const safePageSize = Math.min(pageSizeNumber, 30); // 한 번에 너무 큰 pageSize를 불러오면 무리가 되니까 안전하게 상한을 두기!
+
+    // 2. service 호출 → 조건에 맞는 DB 조회
+    const { studies, pagination } = await studyService.getStudyList({
+      page: pageNumber,
+      pageSize: safePageSize,
+      keyword,
+      sort,
+    });
+
+    // 3. 응답
     return res.status(200).send({
       result: "success",
       message: "스터디 목록이 성공적으로 조회되었습니다!",
-      data: studies,
+      data: {
+        studies,
+        pagination,
+      },
     });
   } catch (error) {
     next(error); // 예상하지 못한 에러는 미들웨어에 넘기기!

@@ -42,7 +42,7 @@ export async function getStudyDetail(studyId) {
   // habit + habitCheck를 합쳐서 프론트에서 쓰기 쉽게 변환하기
   const habitRecords = study.habits.map((habit) => {
     const check = study.habitChecks.find(
-      (check) => check.habitId === habit.habitId
+      (check) => check.habitId === habit.habitId,
     );
 
     return {

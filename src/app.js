@@ -25,7 +25,7 @@ app.get("/health", (req, res) => {
 app.use("/api", apiRouter);
 
 // 공통 에러 핸들러 미들웨어
-app.use((err, req, res, next) => {
+app.use((error, req, res, _next) => {
   console.error(error); // 서버 콘솔에 에러 기록
 
   res.status(500).send({

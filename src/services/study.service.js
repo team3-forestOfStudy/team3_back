@@ -42,7 +42,7 @@ export async function getStudyDetail(studyId) {
   // habit + habitCheck를 합쳐서 프론트에서 쓰기 쉽게 변환하기
   const habitRecords = study.habits.map((habit) => {
     const check = study.habitChecks.find(
-      (check) => check.habitId === habit.habitId,
+      (check) => check.habitId === habit.habitId
     );
 
     return {
@@ -160,4 +160,66 @@ export async function getStudyList({
       hasNextPage: page * pageSize < totalCount,
     },
   };
+}
+
+// 🔐 스터디 비밀번호 확인 함수
+export async function checkStudyPassword(studyId, userPassword) {
+  const study = await prisma.study.findUnique({
+    where: { studyId },
+  });
+
+  // Service 계층에서 { ok: boolean, reason?: string, data?: T } 형태의 객체를 반환하는 것은 실패 상태와 그 원인을 명확히 전달하기 위한 매우 일반적이고 권장되는 패턴
+  if (!study) {
+    return {
+      ok: false,
+      reason: "NOT_FOUND",
+      study: null,
+    };
+  }
+
+  const isMatch = await bcrypt.compare(userPassword, study.encryptedPassword); // 해싱되지 않은 userPassword와 DB에 저장된 해싱된 study.encryptedPassword 비교
+
+  if (!isMatch) {
+    return {
+      ok: false,
+      reason: "WRONG_PASSWORD",
+      study: null,
+    };
+  }
+
+  return {
+    ok: true,
+    reason: null,
+    study,
+  };
+}
+
+// 📘 스터디 수정 함수
+export async function updateStudy(studyId, updateData) {
+  const { nickname, title, description, backgroundImage } = updateData;
+
+  const updatedData = await prisma.study.update({
+    where: { studyId },
+    data: {
+      ...(nickname !== undefined && { nickname }),
+      ...(title !== undefined && { title }),
+      ...(description !== undefined && { description }),
+      ...(backgroundImage !== undefined && { backgroundImage }),
+      status: "UPDATED", // status는 항상 update 되어야하니까 스프레드 문법 사용 X
+    }, // 스프레드 문법을 활용하여 업데이트 할 부분만 업데이트!
+  });
+
+  return updatedData;
+}
+
+// 📘 스터디 삭제 함수 (status를 DELETED로 변경))
+export async function deleteStudy(studyId) {
+  const deletedData = await prisma.study.update({
+    where: { studyId },
+    data: {
+      status: "DELETED",
+    },
+  });
+
+  return deletedData;
 }

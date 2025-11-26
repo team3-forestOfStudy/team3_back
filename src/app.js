@@ -13,7 +13,6 @@ app.use(cors()); // CORS 허용 (나중에 프로트엔드 도메인 허용하�
 app.use(express.json()); // JSON body를 JavaScript 객체로 파싱
 
 // 헬스 체크용 기본 라우터
-
 app.get("/health", (req, res) => {
   res.json({
     result: "success",

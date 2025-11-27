@@ -22,6 +22,13 @@ export async function createStudy(data) {
   return newStudy;
 }
 
+// 📘 스터디 존재 여부(삭제 안 된 것만) 확인 함수
+export async function findActiveStudyById(studyId) {
+  return prisma.study.findUnique({
+    where: { studyId },
+  });
+}
+
 // 📘  스터디 상세 조회 함수 (DB 조회 및 데이터 가공)
 export async function getStudyDetail(studyId) {
   // 스터디 기본 정보

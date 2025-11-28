@@ -81,6 +81,9 @@ model FocusLog {
   focusLogId     Int      @id @default(autoincrement()) @map("focus_log_id")
   studyId        Int      @map("study_id")
   plannedMinutes Int      @map("planned_minutes")
+  actualMinutes  Int?     @default(0)                   @map("actual_minutes") // 실제로 집중한 시간(분)
+  isCompleted    Boolean  @default(false)               @map("is_completed")   // 완료 처리 되었는지
+  isSuccess      Boolean  @default(false)               @map("is_success")     // 목표 달성 성공 여부
   createdAt      DateTime @default(now()) @map("created_at")
 
   // 관계

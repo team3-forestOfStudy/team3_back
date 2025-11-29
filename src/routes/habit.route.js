@@ -1,4 +1,4 @@
-habit.route.js;
+// habit.route.js; // 수정사항
 
 import express from "express";
 import {
@@ -12,11 +12,18 @@ import {
 
 const router = express.Router();
 
-router.get("/studies/:studyId/habits", getStudyHabits);
-router.post("/studies/:studyId/habits", createHabit);
-router.patch("/habits/:habitId", updateHabit);
-router.delete("/habits/:habitId", deleteHabit);
-router.get("/studies/:studyId/habits/today", getTodayHabits);
-router.patch("/habits/:habitId/today-check", updateTodayHabitCheck);
+// /api/studies/:studyId/habits
+router.get("/:studyId/habits", getStudyHabits);
+router.post("/:studyId/habits", createHabit);
+
+// /api/studies/:studyId/habits/:habitId
+router.patch("/:studyId/habits/:habitId", updateHabit);
+router.delete("/:studyId/habits/:habitId", deleteHabit);
+
+// /api/studies/:studyId/habits/today
+router.get("/:studyId/habits/today", getTodayHabits);
+
+// /api/studies/:studyId/habits/:habitId/check-today
+router.patch("/:studyId/habits/:habitId/check-today", updateTodayHabitCheck);
 
 export default router;

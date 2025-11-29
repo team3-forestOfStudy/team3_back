@@ -433,6 +433,7 @@ components:
           example: 공부의 숲 백엔드 만들기
         description:
           type: string
+          example: 공부의 숲 프로젝트 백엔드 API를 구현하는 스터디입니다
         backgroundImage:
           type: string
           example: green
@@ -441,7 +442,7 @@ components:
           example: 15
           description: 스터디 생성 이후 누적된 총 포인트
         status:
-          type: string
+          $ref: "#/components/schemas/StudyStatus"
           example: CREATED
           description: "스터디의 현재 상태 (CREATED / UPDATED / DELETED)"
         createdAt:
@@ -465,19 +466,26 @@ components:
           properties:
             studyId:
               type: integer
+              example: 1
             nickname:
               type: string
+              example: 나는야 개발 짱
             title:
               type: string
+              example: 공부의 숲 백엔드 API 만들기
             description:
               type: string
+              example: 공부의 숲 프로젝트에서 스터디 생성 API를 구현합니다.
             backgroundImage:
               type: string
+              example: green
             totalPoints:
               type: integer
+              example: 0
             createdAt:
               type: string
               format: date-time
+              example: "2025-11-28T08:00:00.000Z"
 
     StudyListResponse:
       type: object
@@ -499,20 +507,27 @@ components:
                 properties:
                   studyId:
                     type: integer
+                    example: 3
                   nickname:
                     type: string
+                    example: 안경 에이스 박세웅
                   title:
                     type: string
+                    example: 안경 고르는 법
                   description:
                     type: string
+                    example: 내 얼굴에 잘 어울리는 안경 같이 골라요
                   backgroundImage:
                     type: string
+                    example: yellow
                   totalPoints:
                     type: integer
+                    example: 27
                     description: 스터디 누적 총 포인트
                   createdAt:
                     type: string
                     format: date-time
+                    example: "2025-11-20T10:30:00.000Z"
                   topEmojis:
                     type: array
                     description: "해당 스터디에 등록된 이모지 중 **최대 3개** (count 내림차순)"
@@ -524,9 +539,11 @@ components:
               properties:
                 totalCount:
                   type: integer
+                  example: 42
                   description: 전체 스터디 개수
                 hasNextPage:
                   type: boolean
+                  example: true
                   description: 다음 페이지가 존재하는지 여부
 
     StudyDetailResponse:
@@ -543,32 +560,69 @@ components:
           properties:
             studyId:
               type: integer
+              example: 4
             nickname:
               type: string
+              example: 탭댄스 장인 김원중
             title:
               type: string
+              example: 흔들리는 편안함! 흔들림 없는 멘탈 관리법
             description:
               type: string
+              example: 탭댄스 추면서 같이 긴장 풀어요
             backgroundImage:
               type: string
+              example: blue
             totalPoints:
               type: integer
+              example: 131
             status:
               type: string
+              example: UPDATED
             createdAt:
               type: string
               format: date-time
+              example: "2025-11-20T10:30:00.000Z"
             updatedAt:
               type: string
               format: date-time
+              example: "2025-11-28T09:00:00.000Z"
             topEmojis:
               type: array
               description: 해당 스터디에 등록된 이모지 목록 (상위 3개 등)
+              example:
+                - emojiId: 1
+                  emojiCode: "1F603"
+                  count: 12
+                  createdAt: "2025-11-21T10:00:00.000Z"
+                - emojiId: 2
+                  emojiCode: "1F44D"
+                  count: 9
+                  createdAt: "2025-11-21T10:05:00.000Z"
               items:
                 $ref: "#/components/schemas/Emoji"
             habitRecords:
               type: array
               description: "습관 항목 및 요일별 달성 체크 상태 목록 (오늘의 습관 API 작업과 연동 예정)"
+              example:
+                - habitId: 1
+                  name: 운동하기
+                  mon: true
+                  tue: false
+                  wed: true
+                  thur: false
+                  fri: true
+                  sat: false
+                  sun: false
+                - habitId: 2
+                  name: 개발 30분
+                  mon: false
+                  tue: true
+                  wed: false
+                  thur: true
+                  fri: false
+                  sat: true
+                  sun: false
               items:
                 type: object
                 properties:
@@ -658,16 +712,19 @@ components:
       properties:
         emojiId:
           type: integer
+          example: 1
         emojiCode:
           type: string
           example: "1F603"
           description: "이모지의 유니코드 (예. 😄)"
         count:
           type: integer
+          example: 12
           description: 해당 이모지가 등록된 총 횟수
         createdAt:
           type: string
           format: date-time
+          example: "2025-11-21T10:00:00.000Z"
 
     EmojiListResponse:
       type: object
@@ -724,27 +781,36 @@ components:
           properties:
             studyId:
               type: integer
+              example: 5
             focusLogId:
               type: integer
+              example: 15
             plannedMinutes:
               type: integer
+              example: 50
             actualMinutes:
               type: integer
+              example: 55
             isCompleted:
               type: boolean
               description: actualMinutes > 0 인지 여부
+              example: true
             isSuccess:
               type: boolean
               description: "actualMinutes >= plannedMinutes 인지 여부 (포인트 적립 기준)"
+              example: true
             pointAmount:
               type: integer
               description: 이번 기록으로 적립된 포인트 금액 (목표 미달시 0, 목표 달성 시 10분당 1포인트 + 3 포인트)
+              example: 8
             totalPointsAfter:
               type: integer
               description: 포인트 적립 후 스터디의 총 누적 포인트
+              example: 120
             createdAt:
               type: string
               format: date-time
+              example: "2025-11-28T09:10:00.000Z"
 
     FailResponse:
       type: object
@@ -759,3 +825,11 @@ components:
         data:
           nullable: true
           example: null
+
+    StudyStatus:
+      type: string
+      description: "스터디 상태를 나타내는 열거형 (CREATED: 생성됨, UPDATED: 수정됨, DELETED: 삭제됨-논리적)"
+      enum:
+        - CREATED
+        - UPDATED
+        - DELETED

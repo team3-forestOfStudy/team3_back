@@ -1,7 +1,6 @@
 // habit.service.js
 
 import prisma from "../prisma.js"; // Prisma Client 불러오기
-habit.service.js;
 
 // 📘 스터디별 습관 목록 조회 함수
 // - GET /api/studies/:studyId/habits 에서 사용
@@ -37,7 +36,7 @@ export async function createHabit({ studyId, name }) {
 }
 
 // 📘 습관 수정 함수 (이름 변경 + 수정 일자 업데이트)
-// - PATCH/api/habits/:habitId 에서 사용
+// - PATCH /api/studies/:studyId/habits/:habitId 에서 사용
 export async function updateHabit({ habitId, name }) {
   // 1) 먼저 해당 habit이 존재하는지 확인
   const existingHabit = await prisma.habit.findUnique({
@@ -45,7 +44,7 @@ export async function updateHabit({ habitId, name }) {
   });
 
   if (!existingHabit) {
-    // 컨트롤러에서  null 반환
+    // 컨트롤러에서 null 반환 처리
     return null;
   }
 
@@ -61,7 +60,7 @@ export async function updateHabit({ habitId, name }) {
   return updatedHabit;
 }
 
-// 📘 습관 삭제 (habitId 삭제)
+// 📘 습관 삭제 (해당 스터디의 habitId 삭제)
 //   - DELETE /api/studies/:studyId/habits/:habitId
 export async function deleteHabit({ studyId, habitId }) {
   // 해당 스터디에 속한 습관인지 확인 후 삭제
@@ -80,7 +79,8 @@ export async function deleteHabit({ studyId, habitId }) {
   return true;
 }
 
-//  오늘의 습관 조회
+// 📘 오늘의 습관 조회
+//   - GET /api/studies/:studyId/habits/today
 export async function getTodayHabits(studyId) {
   // 스터디 + 습관 + 요일별 체크 정보 한 번에 조회
   const study = await prisma.study.findUnique({
@@ -102,7 +102,7 @@ export async function getTodayHabits(studyId) {
   // 각 습관에 대해 오늘 요일 체크 여부를 붙여서 반환
   const todayHabits = study.habits.map((habit) => {
     const check = study.habitChecks.find(
-      (c) => c.habitId === habit.habitId //habitCheck에서 habitId 같은 데이터 찾기, (c) → 임의 지정
+      (c) => c.habitId === habit.habitId // habitCheck에서 habitId 같은 데이터 찾기
     );
 
     const isChecked = check ? Boolean(check[todayKey]) : false;
@@ -115,4 +115,45 @@ export async function getTodayHabits(studyId) {
   });
 
   return todayHabits;
+}
+
+// 📘 오늘의 습관 체크/해제 업데이트
+//   - PATCH /api/studies/:studyId/habits/:habitId/check-today
+export async function updateTodayHabitCheck({ habitId, isChecked }) {
+  const dayIndex = new Date().getDay();
+  const dayKeyList = ["sun", "mon", "tue", "wed", "thur", "fri", "sat"];
+  const todayKey = dayKeyList[dayIndex];
+
+  const existingCheck = await prisma.habitCheck.findFirst({
+    where: { habitId },
+  });
+
+  // 1) 기존 체크 정보가 없으면 새로 생성
+  if (!existingCheck) {
+    const newCheck = await prisma.habitCheck.create({
+      data: {
+        habitId,
+        sun: false,
+        mon: false,
+        tue: false,
+        wed: false,
+        thur: false,
+        fri: false,
+        sat: false,
+        [todayKey]: isChecked,
+      },
+    });
+
+    return newCheck;
+  }
+
+  // 2) 있으면 해당 요일만 업데이트
+  const updatedCheck = await prisma.habitCheck.update({
+    where: { habitCheckId: existingCheck.habitCheckId },
+    data: {
+      [todayKey]: isChecked,
+    },
+  });
+
+  return updatedCheck;
 }

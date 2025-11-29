@@ -1,0 +1,835 @@
+openapi: 3.0.3
+
+info:
+  title: 공부의 숲 Backend API
+  version: 1.0.0
+  description: |
+    팀3 - 공부의 숲 백엔드 API 문서입니다.
+    도메인:
+    - Study (스터디 생성/목록/상세/수정/삭제)
+    - Emoji (이모지 조회/등록)
+    - Focus (오늘의 집중 + 포인트)
+
+servers:
+  - url: http://localhost:4000
+    description: 로컬 개발 서버
+
+tags:
+  - name: Health
+    description: 서버 상태 확인
+  - name: Study
+    description: 스터디 생성/조회/수정/삭제 관련 API
+  - name: Emoji
+    description: 스터디 이모지 관련 API (카운트 증가 로직 포함)
+  - name: Focus
+    description: 오늘의 집중 기록 + 포인트 적립 관련 API (성공 조건 명시)
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: 서버 헬스 체크
+      description: 서버가 정상 동작 중인지 확인합니다.
+      responses:
+        "200":
+          description: 서버 정상 동작
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/studies:
+    post:
+      tags: [Study]
+      summary: 스터디 생성
+      description: 닉네임, 제목, 설명, 배경 이미지, 비밀번호를 입력받아 새로운 스터디를 생성합니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStudyRequest"
+      responses:
+        "201":
+          description: 스터디 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateStudySuccessResponse"
+        "400":
+          description: "잘못된 요청 (유효성 검사 실패: 필수값 누락, 배경 이미지 값 오류 등)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
+    get:
+      tags: [Study]
+      summary: 스터디 목록 조회
+      description: 검색, 정렬, **페이지네이션**을 적용해서 스터디 목록을 조회합니다.
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 페이지 번호 (1부터 시작)
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            default: 6
+          description: 한 번에 불러올 스터디 개수 (기본 6, 최대 30으로 제한될 수 있음)
+        - in: query
+          name: keyword
+          schema:
+            type: string
+          description: 닉네임 / 제목 / 설명에서 검색할 키워드
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [recent, oldest, points_desc, points_asc]
+            default: recent
+          description: "정렬 기준. **points_desc/asc는 누적 포인트를 기준**으로 합니다."
+      responses:
+        "200":
+          description: 스터디 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudyListResponse"
+        "400":
+          description: "잘못된 요청 (page/pageSize 유효성 실패 또는 잘못된 sort 값)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
+  /api/studies/{studyId}:
+    get:
+      tags: [Study]
+      summary: 스터디 상세 조회
+      description: 스터디 상세 정보 + 상위 이모지 + 습관 기록을 조회합니다.
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 조회할 스터디의 고유 ID
+      responses:
+        "200":
+          description: 스터디 상세 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudyDetailResponse"
+        "400":
+          description: "studyId 형식 오류 (경로 파라미터가 숫자가 아님)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 해당 스터디 없음 또는 삭제됨
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
+    patch:
+      tags: [Study]
+      summary: 스터디 수정
+      description: 닉네임/제목/설명/배경 이미지를 수정합니다. **비밀번호가 일치해야 수정 가능합니다.**
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 수정할 스터디의 고유 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStudyRequest"
+      responses:
+        "200":
+          description: 스터디 수정 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateStudySuccessResponse"
+        "400":
+          description: "유효성 검사 실패 (수정할 값이 없거나, 잘못된 배경 이미지 값)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "403":
+          description: 비밀번호 불일치 (수정 권한 없음)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 스터디 없음 또는 삭제됨
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
+    delete:
+      tags: [Study]
+      summary: 스터디 삭제
+      description: 비밀번호 확인 후 스터디 status 를 **'DELETED'로 변경(논리적 삭제)**합니다.
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 삭제할 스터디의 고유 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  example: "1234"
+                  description: 스터디를 삭제하기 위한 비밀번호
+      responses:
+        "200":
+          description: 스터디 삭제(상태 변경) 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteStudySuccessResponse"
+        "400":
+          description: 유효성 검사 실패 (비밀번호 누락 등)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "403":
+          description: 비밀번호 불일치
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 스터디 없음 또는 이미 삭제됨
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
+  /api/studies/{studyId}/emojis:
+    get:
+      tags: [Emoji]
+      summary: 이모지 목록 조회
+      description: "특정 스터디에 등록된 이모지 목록을 **count 내림차순으로** 조회합니다."
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 이모지 목록을 조회할 스터디의 고유 ID
+      responses:
+        "200":
+          description: 이모지 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmojiListResponse"
+        "400":
+          description: studyId 형식 오류
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 스터디 없음 또는 삭제됨
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
+    post:
+      tags: [Emoji]
+      summary: 이모지 등록/카운트 증가 (UPSERT)
+      description: "같은 `emojiCode`가 이미 존재하면 **count를 1 증가**시키고, 없으면 새로 **count를 1로 생성**합니다. (UPSERT 로직)"
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 이모지를 등록할 스터디의 고유 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emojiCode]
+              properties:
+                emojiCode:
+                  type: string
+                  example: "1F603"
+                  description: 등록할 이모지의 코드 값
+      responses:
+        "200":
+          description: 이모지 등록/증가 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmojiUpsertSuccessResponse"
+        "400":
+          description: 유효성 검사 실패 (emojiCode 누락 등)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 스터디 없음 또는 삭제됨
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
+  /api/studies/{studyId}/focus-logs:
+    post:
+      tags: [Focus]
+      summary: 오늘의 집중 기록 생성 + 포인트 적립
+      description: "plannedMinutes, actualMinutes를 받아 **`actual >= planned`일 때** 집중 성공으로 판별하고 포인트를 적립합니다. (성공 시 10분당 1P + 보너스 3P)"
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 집중 기록을 생성할 스터디의 고유 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFocusLogRequest"
+      responses:
+        "201":
+          description: 집중 기록 생성 + 포인트 적립 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateFocusLogSuccessResponse"
+        "400":
+          description: "유효성 검사 실패 (시간 필드 누락, 0 이하 값 등)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 스터디 없음 또는 삭제됨
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 공부의 숲 백엔드 잘 돌아갑니다~~!
+
+    CreateStudyRequest:
+      type: object
+      required: [nickname, title, password, passwordConfirm]
+      properties:
+        nickname:
+          type: string
+          example: 수진
+          description: 스터디를 생성하는 사용자의 닉네임
+        title:
+          type: string
+          example: 스터디 생성 API 작성
+          description: 스터디의 제목
+        description:
+          type: string
+          example: 스터디 생성 API를 만들고 있습니다.
+          description: 스터디의 상세 설명 (선택 사항)
+        backgroundImage:
+          type: string
+          description: 허용되는 배경 이미지 값만 사용 가능
+          enum:
+            - green
+            - yellow
+            - blue
+            - pink
+            - workspace_1
+            - workspace_2
+            - pattern
+            - leaf
+          example: green
+        password:
+          type: string
+          format: password
+          example: "1234"
+          description: 스터디 수정/삭제에 사용될 비밀번호
+        passwordConfirm:
+          type: string
+          format: password
+          example: "1234"
+          description: 비밀번호 확인용 필드 (서버에서 일치 여부 확인)
+
+    StudyBase:
+      type: object
+      properties:
+        studyId:
+          type: integer
+          example: 1
+        nickname:
+          type: string
+          example: 수진
+        title:
+          type: string
+          example: 공부의 숲 백엔드 만들기
+        description:
+          type: string
+          example: 공부의 숲 프로젝트 백엔드 API를 구현하는 스터디입니다
+        backgroundImage:
+          type: string
+          example: green
+        totalPoints:
+          type: integer
+          example: 15
+          description: 스터디 생성 이후 누적된 총 포인트
+        status:
+          $ref: "#/components/schemas/StudyStatus"
+          example: CREATED
+          description: "스터디의 현재 상태 (CREATED / UPDATED / DELETED)"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateStudySuccessResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 스터디가 성공적으로 생성되었습니다!
+        data:
+          type: object
+          properties:
+            studyId:
+              type: integer
+              example: 1
+            nickname:
+              type: string
+              example: 나는야 개발 짱
+            title:
+              type: string
+              example: 공부의 숲 백엔드 API 만들기
+            description:
+              type: string
+              example: 공부의 숲 프로젝트에서 스터디 생성 API를 구현합니다.
+            backgroundImage:
+              type: string
+              example: green
+            totalPoints:
+              type: integer
+              example: 0
+            createdAt:
+              type: string
+              format: date-time
+              example: "2025-11-28T08:00:00.000Z"
+
+    StudyListResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 스터디 목록이 성공적으로 조회되었습니다!
+        data:
+          type: object
+          properties:
+            studies:
+              type: array
+              description: 조회된 스터디 목록
+              items:
+                type: object
+                properties:
+                  studyId:
+                    type: integer
+                    example: 3
+                  nickname:
+                    type: string
+                    example: 안경 에이스 박세웅
+                  title:
+                    type: string
+                    example: 안경 고르는 법
+                  description:
+                    type: string
+                    example: 내 얼굴에 잘 어울리는 안경 같이 골라요
+                  backgroundImage:
+                    type: string
+                    example: yellow
+                  totalPoints:
+                    type: integer
+                    example: 27
+                    description: 스터디 누적 총 포인트
+                  createdAt:
+                    type: string
+                    format: date-time
+                    example: "2025-11-20T10:30:00.000Z"
+                  topEmojis:
+                    type: array
+                    description: "해당 스터디에 등록된 이모지 중 **최대 3개** (count 내림차순)"
+                    items:
+                      $ref: "#/components/schemas/Emoji"
+            pagination:
+              type: object
+              description: 페이지네이션 정보
+              properties:
+                totalCount:
+                  type: integer
+                  example: 42
+                  description: 전체 스터디 개수
+                hasNextPage:
+                  type: boolean
+                  example: true
+                  description: 다음 페이지가 존재하는지 여부
+
+    StudyDetailResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 스터디가 성공적으로 조회되었습니다!
+        data:
+          type: object
+          properties:
+            studyId:
+              type: integer
+              example: 4
+            nickname:
+              type: string
+              example: 탭댄스 장인 김원중
+            title:
+              type: string
+              example: 흔들리는 편안함! 흔들림 없는 멘탈 관리법
+            description:
+              type: string
+              example: 탭댄스 추면서 같이 긴장 풀어요
+            backgroundImage:
+              type: string
+              example: blue
+            totalPoints:
+              type: integer
+              example: 131
+            status:
+              type: string
+              example: UPDATED
+            createdAt:
+              type: string
+              format: date-time
+              example: "2025-11-20T10:30:00.000Z"
+            updatedAt:
+              type: string
+              format: date-time
+              example: "2025-11-28T09:00:00.000Z"
+            topEmojis:
+              type: array
+              description: 해당 스터디에 등록된 이모지 목록 (상위 3개 등)
+              example:
+                - emojiId: 1
+                  emojiCode: "1F603"
+                  count: 12
+                  createdAt: "2025-11-21T10:00:00.000Z"
+                - emojiId: 2
+                  emojiCode: "1F44D"
+                  count: 9
+                  createdAt: "2025-11-21T10:05:00.000Z"
+              items:
+                $ref: "#/components/schemas/Emoji"
+            habitRecords:
+              type: array
+              description: "습관 항목 및 요일별 달성 체크 상태 목록 (오늘의 습관 API 작업과 연동 예정)"
+              example:
+                - habitId: 1
+                  name: 운동하기
+                  mon: true
+                  tue: false
+                  wed: true
+                  thur: false
+                  fri: true
+                  sat: false
+                  sun: false
+                - habitId: 2
+                  name: 개발 30분
+                  mon: false
+                  tue: true
+                  wed: false
+                  thur: true
+                  fri: false
+                  sat: true
+                  sun: false
+              items:
+                type: object
+                properties:
+                  habitId:
+                    type: integer
+                  name:
+                    type: string
+                  mon:
+                    type: boolean
+                  tue:
+                    type: boolean
+                  wed:
+                    type: boolean
+                  thur:
+                    type: boolean
+                  fri:
+                    type: boolean
+                  sat:
+                    type: boolean
+                  sun:
+                    type: boolean
+
+    UpdateStudyRequest:
+      type: object
+      required: [password]
+      properties:
+        nickname:
+          type: string
+          description: 수정할 닉네임 (선택 사항)
+        title:
+          type: string
+          description: 수정할 제목 (선택 사항)
+        description:
+          type: string
+          description: 수정할 설명 (선택 사항)
+        backgroundImage:
+          type: string
+          description: 수정할 배경 이미지 (선택 사항)
+          enum:
+            - green
+            - yellow
+            - blue
+            - pink
+            - workspace_1
+            - workspace_2
+            - pattern
+            - leaf
+        password:
+          type: string
+          example: "1234"
+          description: 필수 / 수정 권한 확인을 위한 비밀번호
+
+    UpdateStudySuccessResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 스터디가 성공적으로 수정되었습니다!
+        data:
+          $ref: "#/components/schemas/StudyBase"
+          description: 수정된 스터디의 기본 정보
+
+    DeleteStudySuccessResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 스터디가 성공적으로 삭제되었습니다!
+        data:
+          type: object
+          properties:
+            studyId:
+              type: integer
+            status:
+              type: string
+              example: DELETED
+              description: 삭제(DELETED)로 상태가 변경됨을 확인
+
+    Emoji:
+      type: object
+      properties:
+        emojiId:
+          type: integer
+          example: 1
+        emojiCode:
+          type: string
+          example: "1F603"
+          description: "이모지의 유니코드 (예. 😄)"
+        count:
+          type: integer
+          example: 12
+          description: 해당 이모지가 등록된 총 횟수
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-11-21T10:00:00.000Z"
+
+    EmojiListResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 이모지 목록이 성공적으로 조회되었습니다!
+        data:
+          type: array
+          description: count 내림차순으로 정렬된 이모지 목록
+          items:
+            $ref: "#/components/schemas/Emoji"
+
+    EmojiUpsertSuccessResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 이모지가 성공적으로 추가되었습니다!
+        data:
+          $ref: "#/components/schemas/Emoji"
+          description: 업데이트/생성된 이모지의 최종 정보
+
+    CreateFocusLogRequest:
+      type: object
+      required: [plannedMinutes, actualMinutes]
+      properties:
+        plannedMinutes:
+          type: integer
+          example: 50
+          description: 목표한 집중 시간 (분 단위, 1 이상)
+        actualMinutes:
+          type: integer
+          example: 50
+          description: 실제로 집중한 시간 (분 단위, 1 이상)
+
+    CreateFocusLogSuccessResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 오늘의 집중 기록이 성공적으로 저장되었습니다!
+        data:
+          type: object
+          properties:
+            studyId:
+              type: integer
+              example: 5
+            focusLogId:
+              type: integer
+              example: 15
+            plannedMinutes:
+              type: integer
+              example: 50
+            actualMinutes:
+              type: integer
+              example: 55
+            isCompleted:
+              type: boolean
+              description: actualMinutes > 0 인지 여부
+              example: true
+            isSuccess:
+              type: boolean
+              description: "actualMinutes >= plannedMinutes 인지 여부 (포인트 적립 기준)"
+              example: true
+            pointAmount:
+              type: integer
+              description: 이번 기록으로 적립된 포인트 금액 (목표 미달시 0, 목표 달성 시 10분당 1포인트 + 3 포인트)
+              example: 8
+            totalPointsAfter:
+              type: integer
+              description: 포인트 적립 후 스터디의 총 누적 포인트
+              example: 120
+            createdAt:
+              type: string
+              format: date-time
+              example: "2025-11-28T09:10:00.000Z"
+
+    FailResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: fail
+        message:
+          type: string
+          example: 에러 메시지
+          description: 사용자에게 보여줄 구체적인 에러 내용
+        data:
+          nullable: true
+          example: null
+
+    StudyStatus:
+      type: string
+      description: "스터디 상태를 나타내는 열거형 (CREATED: 생성됨, UPDATED: 수정됨, DELETED: 삭제됨-논리적)"
+      enum:
+        - CREATED
+        - UPDATED
+        - DELETED

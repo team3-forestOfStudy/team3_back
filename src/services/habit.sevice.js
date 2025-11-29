@@ -64,13 +64,19 @@ export async function updateHabit({ habitId, name }) {
 //   - DELETE /api/studies/:studyId/habits/:habitId
 export async function deleteHabit({ studyId, habitId }) {
   // 해당 스터디에 속한 습관인지 확인 후 삭제
-  const result = await prisma.habit.deleteMany({
+  await prisma.habitCheck.deleteMany({
     where: {
       habitId,
       studyId,
     },
   });
-
+  const result = await prisma.habit.deleteMany({
+    where: {
+      // 수정사항
+      habitId,
+      studyId,
+    },
+  });
   // 삭제된 행이 없으면 (count = 0) → 없는 습관
   if (result.count === 0) {
     return false;
@@ -133,6 +139,7 @@ export async function updateTodayHabitCheck({ habitId, isChecked }) {
     const newCheck = await prisma.habitCheck.create({
       data: {
         habitId,
+        studyId, // 수정사항
         sun: false,
         mon: false,
         tue: false,

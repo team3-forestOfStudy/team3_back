@@ -125,13 +125,13 @@ export async function getTodayHabits(studyId) {
 
 // 📘 오늘의 습관 체크/해제 업데이트
 //   - PATCH /api/studies/:studyId/habits/:habitId/check-today
-export async function updateTodayHabitCheck({ habitId, isChecked }) {
+export async function updateTodayHabitCheck({ studyId, habitId, isChecked }) {
   const dayIndex = new Date().getDay();
   const dayKeyList = ["sun", "mon", "tue", "wed", "thur", "fri", "sat"];
   const todayKey = dayKeyList[dayIndex];
 
   const existingCheck = await prisma.habitCheck.findFirst({
-    where: { habitId },
+    where: { studyId, habitId },
   });
 
   // 1) 기존 체크 정보가 없으면 새로 생성

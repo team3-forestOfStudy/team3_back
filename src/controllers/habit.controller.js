@@ -233,7 +233,7 @@ export async function getTodayHabits(req, res, next) {
 // 📘 오늘의 습관 체크/체크 해제 컨트롤러 (PATCH /api/studies/:studyId/habits/:habitId/check-today)
 export async function updateTodayHabitCheck(req, res, next) {
   try {
-    const { habitId } = req.params;
+    const { studyId, habitId } = req.params;
     const { isChecked } = req.body;
 
     const id = Number(habitId);
@@ -254,7 +254,8 @@ export async function updateTodayHabitCheck(req, res, next) {
     }
 
     const updatedCheck = await habitService.updateTodayHabitCheck({
-      habitId: id,
+      studyId: parsedStudyId,
+      habitId: parsedHabitId,
       isChecked,
     });
 

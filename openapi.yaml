@@ -5,10 +5,13 @@ info:
   version: 1.0.0
   description: |
     팀3 - 공부의 숲 백엔드 API 문서입니다.
+
     도메인:
-    - Study (스터디 생성/목록/상세/수정/삭제)
+    - Health (헬스 체크)
+    - Study (스터디 생성/목록/상세/수정/삭제, 비밀번호 확인)
     - Emoji (이모지 조회/등록)
     - Focus (오늘의 집중 + 포인트)
+    - Habit (습관 CRUD + 오늘의 습관 조회/체크)
 
 servers:
   - url: http://localhost:4000
@@ -18,11 +21,13 @@ tags:
   - name: Health
     description: 서버 상태 확인
   - name: Study
-    description: 스터디 생성/조회/수정/삭제 관련 API
+    description: 스터디 생성/조회/수정/삭제 및 비밀번호 확인 관련 API
   - name: Emoji
     description: 스터디 이모지 관련 API (카운트 증가 로직 포함)
   - name: Focus
     description: 오늘의 집중 기록 + 포인트 적립 관련 API (성공 조건 명시)
+  - name: Habit
+    description: 습관 CRUD 및 오늘의 습관 조회/체크 관련 API
 
 paths:
   /health:
@@ -57,7 +62,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateStudySuccessResponse"
         "400":
-          description: "잘못된 요청 (유효성 검사 실패: 필수값 누락, 배경 이미지 값 오류 등)"
+          description: "잘못된 요청 (유효성 검사 실패: 필수값 누락, 비밀번호 불일치, 배경 이미지 값 오류 등)"
           content:
             application/json:
               schema:
@@ -68,7 +73,7 @@ paths:
     get:
       tags: [Study]
       summary: 스터디 목록 조회
-      description: 검색, 정렬, **페이지네이션**을 적용해서 스터디 목록을 조회합니다.
+      description: 검색, 정렬, 페이지네이션(더보기)을 적용해서 스터디 목록을 조회합니다.
       parameters:
         - in: query
           name: page
@@ -116,7 +121,7 @@ paths:
     get:
       tags: [Study]
       summary: 스터디 상세 조회
-      description: 스터디 상세 정보 + 상위 이모지 + 습관 기록을 조회합니다.
+      description: 스터디 상세 정보 + 상위 이모지 + 습관 요일별 기록을 조회합니다.
       parameters:
         - in: path
           name: studyId
@@ -173,7 +178,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateStudySuccessResponse"
         "400":
-          description: "유효성 검사 실패 (수정할 값이 없거나, 잘못된 배경 이미지 값)"
+          description: "유효성 검사 실패 (수정할 값이 없거나, 잘못된 배경 이미지 값, 비밀번호 누락 등)"
           content:
             application/json:
               schema:
@@ -245,6 +250,53 @@ paths:
         "500":
           description: 서버 내부 오류
 
+  /api/studies/{studyId}/verify-password:
+    post:
+      tags: [Study]
+      summary: 스터디 비밀번호 확인
+      description: 상세 페이지에서 수정/삭제 전에 비밀번호가 올바른지 먼저 확인할 때 사용하는 전용 API입니다.
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 비밀번호를 확인할 스터디의 고유 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyPasswordRequest"
+      responses:
+        "200":
+          description: 비밀번호 확인 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyPasswordSuccessResponse"
+        "400":
+          description: "유효성 검사 실패 (studyId 형식 오류, 비밀번호 누락 등)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "403":
+          description: 비밀번호 불일치
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 스터디 없음 또는 삭제됨
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
   /api/studies/{studyId}/emojis:
     get:
       tags: [Emoji]
@@ -303,7 +355,7 @@ paths:
                 emojiCode:
                   type: string
                   example: "1F603"
-                  description: 등록할 이모지의 코드 값
+                  description: 등록할 이모지의 코드 값 (예. 😄 → "1F604" 형식)
       responses:
         "200":
           description: 이모지 등록/증가 성공
@@ -360,6 +412,251 @@ paths:
                 $ref: "#/components/schemas/FailResponse"
         "404":
           description: 스터디 없음 또는 삭제됨
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
+  /api/studies/{studyId}/habits:
+    get:
+      tags: [Habit]
+      summary: 스터디별 습관 목록 조회
+      description: 특정 스터디에 등록된 모든 습관 목록을 생성 순으로 조회합니다.
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 습관 목록을 조회할 스터디의 고유 ID
+      responses:
+        "200":
+          description: 습관 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HabitListResponse"
+        "400":
+          description: studyId 형식 오류
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 스터디 없음 또는 삭제됨
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+    post:
+      tags: [Habit]
+      summary: 습관 생성
+      description: 특정 스터디에 새로운 습관을 추가합니다.
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 습관을 생성할 스터디의 고유 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHabitRequest"
+      responses:
+        "201":
+          description: 습관 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HabitResponse"
+        "400":
+          description: 유효성 검사 실패 (이름 누락 등)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 스터디 없음 또는 삭제됨
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
+  /api/studies/{studyId}/habits/{habitId}:
+    patch:
+      tags: [Habit]
+      summary: 습관 수정
+      description: 특정 스터디에 속한 습관의 이름을 수정합니다.
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 습관이 속한 스터디의 고유 ID
+        - in: path
+          name: habitId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 수정할 습관의 고유 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateHabitRequest"
+      responses:
+        "200":
+          description: 습관 수정 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HabitResponse"
+        "400":
+          description: "유효성 검사 실패 (ID 형식 오류, 이름 누락 등)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 해당 스터디에서 습관을 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+    delete:
+      tags: [Habit]
+      summary: 습관 삭제
+      description: 특정 스터디에 속한 습관을 삭제합니다. 관련된 habitCheck도 함께 삭제됩니다.
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 습관이 속한 스터디의 고유 ID
+        - in: path
+          name: habitId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 삭제할 습관의 고유 ID
+      responses:
+        "200":
+          description: 습관 삭제 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteHabitSuccessResponse"
+        "400":
+          description: "유효성 검사 실패 (ID 형식 오류 등)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 해당 습관을 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
+  /api/studies/{studyId}/habits/today:
+    get:
+      tags: [Habit]
+      summary: 오늘의 습관 목록 조회
+      description: 오늘 요일 기준으로, 각 습관이 체크되었는지 여부(isChecked)를 포함하여 반환합니다.
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 오늘의 습관 상태를 조회할 스터디의 고유 ID
+      responses:
+        "200":
+          description: 오늘의 습관 상태 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodayHabitListResponse"
+        "400":
+          description: studyId 형식 오류
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 스터디 없음 또는 삭제됨
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "500":
+          description: 서버 내부 오류
+
+  /api/studies/{studyId}/habits/{habitId}/check-today:
+    patch:
+      tags: [Habit]
+      summary: 오늘의 습관 체크/해제
+      description: 오늘 날짜 기준으로 특정 습관의 체크 상태를 true/false로 업데이트합니다.
+      parameters:
+        - in: path
+          name: studyId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 습관이 속한 스터디의 고유 ID
+        - in: path
+          name: habitId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 체크 상태를 변경할 습관의 고유 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTodayCheckRequest"
+      responses:
+        "200":
+          description: 오늘의 습관 체크 상태 업데이트 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodayCheckResponse"
+        "400":
+          description: "유효성 검사 실패 (ID 형식 오류, isChecked 타입 오류 등)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailResponse"
+        "404":
+          description: 스터디 또는 습관을 찾을 수 없음
           content:
             application/json:
               schema:
@@ -424,7 +721,7 @@ components:
       properties:
         studyId:
           type: integer
-          example: 1
+          example: 2
         nickname:
           type: string
           example: 수진
@@ -442,15 +739,21 @@ components:
           example: 15
           description: 스터디 생성 이후 누적된 총 포인트
         status:
-          $ref: "#/components/schemas/StudyStatus"
+          type: string
+          description: "스터디 상태 (CREATED: 생성됨, UPDATED: 수정됨, DELETED: 삭제됨-논리적 삭제)"
+          enum:
+            - CREATED
+            - UPDATED
+            - DELETED
           example: CREATED
-          description: "스터디의 현재 상태 (CREATED / UPDATED / DELETED)"
         createdAt:
           type: string
           format: date-time
+          example: "2025-11-25T07:05:20.631Z"
         updatedAt:
           type: string
           format: date-time
+          example: "2025-11-26T09:10:00.000Z"
 
     CreateStudySuccessResponse:
       type: object
@@ -475,13 +778,17 @@ components:
               example: 공부의 숲 백엔드 API 만들기
             description:
               type: string
-              example: 공부의 숲 프로젝트에서 스터디 생성 API를 구현합니다.
+              example: 공부의 숲 프로젝트에서 스터디 생성 API를 함께 구현해요.
             backgroundImage:
               type: string
-              example: green
+              example: blue
             totalPoints:
               type: integer
               example: 0
+            status:
+              type: string
+              example: CREATED
+              description: 생성 시점의 스터디 상태
             createdAt:
               type: string
               format: date-time
@@ -603,7 +910,7 @@ components:
                 $ref: "#/components/schemas/Emoji"
             habitRecords:
               type: array
-              description: "습관 항목 및 요일별 달성 체크 상태 목록 (오늘의 습관 API 작업과 연동 예정)"
+              description: 습관 항목 및 요일별 달성 체크 상태 목록
               example:
                 - habitId: 1
                   name: 운동하기
@@ -652,12 +959,15 @@ components:
         nickname:
           type: string
           description: 수정할 닉네임 (선택 사항)
+          example: 새로운 닉네임
         title:
           type: string
           description: 수정할 제목 (선택 사항)
+          example: 스터디 제목 수정 테스트
         description:
           type: string
           description: 수정할 설명 (선택 사항)
+          example: 스터디 설명을 이렇게 바꿔봅니다.
         backgroundImage:
           type: string
           description: 수정할 배경 이미지 (선택 사항)
@@ -670,6 +980,7 @@ components:
             - workspace_2
             - pattern
             - leaf
+          example: workspace_1
         password:
           type: string
           example: "1234"
@@ -702,10 +1013,42 @@ components:
           properties:
             studyId:
               type: integer
+              example: 1
             status:
               type: string
               example: DELETED
               description: 삭제(DELETED)로 상태가 변경됨을 확인
+
+    VerifyPasswordRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          example: "1234"
+          description: 확인할 비밀번호
+
+    VerifyPasswordSuccessResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 비밀번호가 확인되었습니다!
+        data:
+          type: object
+          properties:
+            studyId:
+              type: integer
+              example: 4
+            nickname:
+              type: string
+              example: 탭댄스 장인 김원중
+            title:
+              type: string
+              example: 흔들리는 편안함! 흔들림 없는 멘탈 관리법
 
     Emoji:
       type: object
@@ -764,7 +1107,7 @@ components:
           description: 목표한 집중 시간 (분 단위, 1 이상)
         actualMinutes:
           type: integer
-          example: 50
+          example: 55
           description: 실제로 집중한 시간 (분 단위, 1 이상)
 
     CreateFocusLogSuccessResponse:
@@ -811,6 +1154,168 @@ components:
               type: string
               format: date-time
               example: "2025-11-28T09:10:00.000Z"
+
+    Habit:
+      type: object
+      properties:
+        habitId:
+          type: integer
+          example: 3
+        studyId:
+          type: integer
+          example: 2
+        name:
+          type: string
+          example: 매일 30분 개발 공부
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-11-25T07:20:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-11-26T07:30:00.000Z"
+
+    HabitResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 습관 요청이 성공적으로 처리되었습니다!
+        data:
+          $ref: "#/components/schemas/Habit"
+
+    HabitListResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 습관 목록이 성공적으로 조회되었습니다!
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Habit"
+
+    CreateHabitRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: 매일 30분 TIL 작성하기
+          description: 생성할 습관의 이름
+
+    UpdateHabitRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: 매일 1시간 TIL 작성하기
+          description: 수정할 습관 이름
+
+    DeleteHabitSuccessResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 습관이 성공적으로 삭제되었습니다!
+        data:
+          type: object
+          properties:
+            habitId:
+              type: integer
+              example: 3
+
+    TodayHabit:
+      type: object
+      properties:
+        habitId:
+          type: integer
+          example: 3
+        name:
+          type: string
+          example: 매일 30분 개발 공부
+        isChecked:
+          type: boolean
+          example: true
+          description: 오늘 기준으로 체크 여부
+
+    TodayHabitListResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 오늘의 습관 상태가 성공적으로 조회되었습니다!
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/TodayHabit"
+
+    UpdateTodayCheckRequest:
+      type: object
+      required: [isChecked]
+      properties:
+        isChecked:
+          type: boolean
+          example: true
+          description: 오늘 체크(true) 또는 체크 해제(false) 여부
+
+    TodayCheckResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 오늘의 습관 체크 상태가 업데이트되었습니다!
+        data:
+          type: object
+          description: 업데이트된 habitCheck 정보
+          properties:
+            habitCheckId:
+              type: integer
+              example: 5
+            studyId:
+              type: integer
+              example: 2
+            habitId:
+              type: integer
+              example: 3
+            sun:
+              type: boolean
+              example: false
+            mon:
+              type: boolean
+              example: true
+            tue:
+              type: boolean
+              example: false
+            wed:
+              type: boolean
+              example: true
+            thur:
+              type: boolean
+              example: false
+            fri:
+              type: boolean
+              example: false
+            sat:
+              type: boolean
+              example: false
 
     FailResponse:
       type: object

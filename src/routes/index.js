@@ -2,6 +2,7 @@ import express from "express"; // Express 모듈 불러오기
 import studyRouter from "./study.route.js";
 import emojiRouter from "./emoji.route.js";
 import focusRouter from "./focus.route.js";
+import habitRouter from "./habit.route.js"; // 수정사항
 
 const router = express.Router(); // 라우터 객체 생성
 
@@ -10,5 +11,6 @@ const router = express.Router(); // 라우터 객체 생성
 router.use("/studies", studyRouter); // /api/studies 아래에 스터디(Study) 관리 라우트 연결
 router.use("/studies", emojiRouter); // /api/studies 아래에 이모지(Emoji) 관련 라우트 연결
 router.use("/studies", focusRouter); // /api/studies 아래에 집중 기록(Focus Log) 관련 라우트 연결
+router.use("/studies", habitRouter); // 수정사항
 
 export default router; // 다른 파일에서 사용할 수 있게 내보내기

@@ -37,10 +37,13 @@ export async function createHabit({ studyId, name }) {
 
 // 📘 습관 수정 함수 (이름 변경 + 수정 일자 업데이트)
 // - PATCH /api/studies/:studyId/habits/:habitId 에서 사용
-export async function updateHabit({ habitId, name }) {
-  // 1) 먼저 해당 habit이 존재하는지 확인
-  const existingHabit = await prisma.habit.findUnique({
-    where: { habitId },
+export async function updateHabit({ studyId, habitId, name }) {
+  // 1) 먼저 해당 스터디에 속한 habit인지 확인
+  const existingHabit = await prisma.habit.findFirst({
+    where: {
+      habitId,
+      studyId,
+    },
   });
 
   if (!existingHabit) {
@@ -53,7 +56,7 @@ export async function updateHabit({ habitId, name }) {
     where: { habitId },
     data: {
       name,
-      updatedAt: new Date(), // 수정 일자 업데이트
+      updatedAt: new Date(),
     },
   });
 

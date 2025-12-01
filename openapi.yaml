@@ -67,6 +67,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                missingRequired:
+                  summary: "필수 값(nickname/title/password/passwordConfirm) 누락"
+                  value:
+                    result: fail
+                    message: "닉네임, 스터디 이름, 비밀번호, 비밀번호 확인은 필수로 작성해야합니다."
+                    data: null
+                passwordMismatch:
+                  summary: "비밀번호와 비밀번호 확인이 일치하지 않을 때"
+                  value:
+                    result: fail
+                    message: "비밀번호와 비밀번호 확인이 일치하지 않습니다."
+                    data: null
+                invalidBackground:
+                  summary: "허용되지 않은 backgroundImage 값을 보냈을 때"
+                  value:
+                    result: fail
+                    message: "맞지 않는 배경 이미지입니다."
+                    data: null
         "500":
           description: 서버 내부 오류
 
@@ -114,6 +133,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                invalidPage:
+                  summary: "page 또는 pageSize가 1 미만이거나 정수가 아닐 때"
+                  value:
+                    result: fail
+                    message: "page와 pageSize는 1이상의 정수이어야 합니다."
+                    data: null
         "500":
           description: 서버 내부 오류
 
@@ -143,12 +169,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                invalidId:
+                  summary: "studyId가 숫자가 아닐 때"
+                  value:
+                    result: fail
+                    message: "잘못된 요청입니다. studyId는 숫자여야 합니다."
+                    data: null
         "404":
           description: 해당 스터디 없음 또는 삭제됨
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                notFound:
+                  summary: "삭제되었거나 존재하지 않는 스터디일 때"
+                  value:
+                    result: fail
+                    message: "해당 스터디를 찾을 수 없습니다."
+                    data: null
         "500":
           description: 서버 내부 오류
 
@@ -183,18 +223,57 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                invalidId:
+                  summary: "studyId가 숫자가 아닐 때"
+                  value:
+                    result: fail
+                    message: "잘못된 요청입니다. studyId는 숫자여야 합니다."
+                    data: null
+                missingPassword:
+                  summary: "비밀번호를 보내지 않은 경우"
+                  value:
+                    result: fail
+                    message: "수정을 위해 비밀번호를 입력해주세요"
+                    data: null
+                noUpdateField:
+                  summary: "nickname/title/description/backgroundImage 중 아무것도 안 보냈을 때"
+                  value:
+                    result: fail
+                    message: "수정할 값이 최소 1개 이상이어야 합니다"
+                    data: null
+                invalidBackground:
+                  summary: "허용되지 않은 backgroundImage 값을 보냈을 때"
+                  value:
+                    result: fail
+                    message: "맞지 않는 배경 이미지입니다."
+                    data: null
         "403":
           description: 비밀번호 불일치 (수정 권한 없음)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                wrongPassword:
+                  summary: "비밀번호가 틀렸을 때"
+                  value:
+                    result: fail
+                    message: "비밀번호가 일치하지 않습니다."
+                    data: null
         "404":
           description: 스터디 없음 또는 삭제됨
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                notFound:
+                  summary: "존재하지 않거나 삭제된 스터디일 때"
+                  value:
+                    result: fail
+                    message: "해당 스터디를 찾을 수 없습니다."
+                    data: null
         "500":
           description: 서버 내부 오류
 
@@ -235,18 +314,45 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                invalidId:
+                  summary: "studyId가 숫자가 아닐 때"
+                  value:
+                    result: fail
+                    message: "잘못된 요청입니다. studyId는 숫자여야 합니다."
+                    data: null
+                missingPassword:
+                  summary: "비밀번호를 보내지 않은 경우"
+                  value:
+                    result: fail
+                    message: "삭제를 위해 비밀번호를 입력해주세요"
+                    data: null
         "403":
           description: 비밀번호 불일치
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                wrongPassword:
+                  summary: "삭제 비밀번호가 틀렸을 때"
+                  value:
+                    result: fail
+                    message: "비밀번호가 일치하지 않습니다."
+                    data: null
         "404":
           description: 스터디 없음 또는 이미 삭제됨
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                notFound:
+                  summary: "존재하지 않거나 이미 삭제된 스터디일 때"
+                  value:
+                    result: fail
+                    message: "해당 스터디를 찾을 수 없습니다."
+                    data: null
         "500":
           description: 서버 내부 오류
 
@@ -282,18 +388,45 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                invalidId:
+                  summary: "studyId가 숫자가 아닐 때"
+                  value:
+                    result: fail
+                    message: "잘못된 요청입니다. studyId는 숫자여야 합니다."
+                    data: null
+                missingPassword:
+                  summary: "비밀번호를 보내지 않은 경우"
+                  value:
+                    result: fail
+                    message: "비밀번호를 입력해주세요."
+                    data: null
         "403":
           description: 비밀번호 불일치
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                wrongPassword:
+                  summary: "비밀번호가 틀렸을 때"
+                  value:
+                    result: fail
+                    message: "비밀번호가 일치하지 않습니다."
+                    data: null
         "404":
           description: 스터디 없음 또는 삭제됨
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                notFound:
+                  summary: "존재하지 않는 스터디일 때"
+                  value:
+                    result: fail
+                    message: "해당 스터디를 찾을 수 없습니다."
+                    data: null
         "500":
           description: 서버 내부 오류
 
@@ -445,12 +578,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                invalidId:
+                  summary: "studyId가 숫자가 아닐 때"
+                  value:
+                    result: fail
+                    message: "잘못된 요청입니다. studyId는 숫자여야 합니다!"
+                    data: null
         "404":
           description: 스터디 없음 또는 삭제됨
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                notFound:
+                  summary: "삭제되었거나 존재하지 않는 스터디일 때"
+                  value:
+                    result: fail
+                    message: "해당 스터디를 찾을 수 없습니다."
+                    data: null
         "500":
           description: 서버 내부 오류
     post:
@@ -484,12 +631,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                invalidId:
+                  summary: "studyId가 숫자가 아닐 때"
+                  value:
+                    result: fail
+                    message: "잘못된 요청입니다. studyId는 숫자여야 합니다!"
+                    data: null
+                missingName:
+                  summary: "name(습관 이름)을 보내지 않은 경우"
+                  value:
+                    result: fail
+                    message: "습관 이름은 필수로 작성해야 합니다."
+                    data: null
         "404":
           description: 스터디 없음 또는 삭제됨
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                notFound:
+                  summary: "존재하지 않거나 삭제된 스터디일 때"
+                  value:
+                    result: fail
+                    message: "해당 스터디를 찾을 수 없습니다."
+                    data: null
         "500":
           description: 서버 내부 오류
 
@@ -532,12 +699,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                invalidIds:
+                  summary: "studyId 또는 habitId가 숫자가 아닐 때"
+                  value:
+                    result: fail
+                    message: "studyId와 habitId는 숫자여야 합니다!"
+                    data: null
+                missingName:
+                  summary: "name(습관 이름)을 보내지 않은 경우"
+                  value:
+                    result: fail
+                    message: "습관 이름은 필수로 작성해야 합니다."
+                    data: null
         "404":
           description: 해당 스터디에서 습관을 찾을 수 없음
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                notFound:
+                  summary: "해당 스터디에 해당 habitId가 없을 때"
+                  value:
+                    result: fail
+                    message: "해당 스터디에서 해당 습관을 찾을 수 없습니다."
+                    data: null
         "500":
           description: 서버 내부 오류
     delete:
@@ -572,12 +759,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                invalidIds:
+                  summary: "studyId 또는 habitId가 숫자가 아닐 때"
+                  value:
+                    result: fail
+                    message: "잘못된 요청입니다. studyId와 habitId는 숫자여야 합니다!"
+                    data: null
         "404":
           description: 해당 습관을 찾을 수 없음
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                notFound:
+                  summary: "이미 삭제되었거나 존재하지 않는 습관일 때"
+                  value:
+                    result: fail
+                    message: "해당 습관을 찾을 수 없습니다."
+                    data: null
         "500":
           description: 서버 내부 오류
 
@@ -607,12 +808,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                invalidId:
+                  summary: "studyId가 숫자가 아닐 때"
+                  value:
+                    result: fail
+                    message: "잘못된 요청입니다. studyId는 숫자여야 합니다!"
+                    data: null
         "404":
           description: 스터디 없음 또는 삭제됨
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                notFound:
+                  summary: "존재하지 않거나 삭제된 스터디일 때"
+                  value:
+                    result: fail
+                    message: "해당 스터디를 찾을 수 없습니다."
+                    data: null
         "500":
           description: 서버 내부 오류
 
@@ -655,12 +870,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples:
+                invalidIds:
+                  summary: "studyId 또는 habitId가 숫자가 아닐 때"
+                  value:
+                    result: fail
+                    message: "studyId와 habitId는 숫자여야 합니다."
+                    data: null
+                invalidIsChecked:
+                  summary: "isChecked가 boolean이 아닐 때"
+                  value:
+                    result: fail
+                    message: "isChecked는 true 또는 false여야 합니다."
+                    data: null
         "404":
           description: 스터디 또는 습관을 찾을 수 없음
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailResponse"
+              examples: # (이 부분은 현재 코드상 실제 404를 던지지는 않지만, 문서 용도로 유지)
+                notFound:
+                  summary: "해당 스터디 또는 습관이 존재하지 않을 때 (문서용 예시)"
+                  value:
+                    result: fail
+                    message: "해당 스터디 또는 습관을 찾을 수 없습니다."
+                    data: null
         "500":
           description: 서버 내부 오류
 
@@ -1068,6 +1303,10 @@ components:
           type: string
           format: date-time
           example: "2025-11-21T10:00:00.000Z"
+        studyId:
+          type: integer
+          example: 4
+          description: 이 이모지가 속한 스터디 ID
 
     EmojiListResponse:
       type: object
@@ -1092,7 +1331,7 @@ components:
           example: success
         message:
           type: string
-          example: 이모지가 성공적으로 추가되었습니다!
+          example: "이모지가 성공적으로 추가되었거나 count가 증가되었습니다!"
         data:
           $ref: "#/components/schemas/Emoji"
           description: 업데이트/생성된 이모지의 최종 정보
@@ -1295,6 +1534,14 @@ components:
             habitId:
               type: integer
               example: 3
+            todayKey:
+              type: string
+              example: wed
+              description: 오늘 요일의 필드명 (sun~sat)
+            isChecked:
+              type: boolean
+              example: true
+              description: 오늘 기준 체크 여부
             sun:
               type: boolean
               example: false
@@ -1330,6 +1577,25 @@ components:
         data:
           nullable: true
           example: null
+        examples:
+          badRequest:
+            summary: 400 잘못된 요청
+            value:
+              result: fail
+              message: 잘못된 요청입니다.
+              data: null
+          unauthorized:
+            summary: 403 인증 실패
+            value:
+              result: fail
+              message: 비밀번호가 일치하지 않습니다.
+              data: null
+          notFound:
+            summary: 404 찾을 수 없음
+            value:
+              result: fail
+              message: 해당 리소스를 찾을 수 없습니다.
+              data: null
 
     StudyStatus:
       type: string

@@ -78,6 +78,7 @@ export async function createStudy(req, res, next) {
         description: newStudy.description,
         backgroundImage: newStudy.backgroundImage,
         totalPoints: newStudy.totalPoints,
+        status: newStudy.status,
         createdAt: newStudy.createdAt,
       },
     });
@@ -168,6 +169,66 @@ export async function getStudyList(req, res, next) {
     });
   } catch (error) {
     next(error); // 예상하지 못한 에러는 미들웨어에 넘기기!
+  }
+}
+
+// 🔐 비밀번호 확인 전용 컨트롤러 (POST /api/studies/:studyId/verify-password)
+export async function verifyStudyPassword(req, res, next) {
+  try {
+    const { studyId } = req.params;
+    const { password } = req.body;
+
+    // 1. 유효성 검사
+    // studyId 검사 및 숫자 변환
+    const id = Number(studyId);
+    if (Number.isNaN(id)) {
+      return res.status(400).send({
+        result: "fail",
+        message: "잘못된 요청입니다. studyId는 숫자여야 합니다.",
+        data: null,
+      });
+    }
+
+    // 비밀번호 필수 검사
+    if (!password?.trim()) {
+      return res.status(400).send({
+        result: "fail",
+        message: "비밀번호를 입력해주세요.",
+        data: null,
+      });
+    }
+
+    // 2. 권한 확인
+    const checkResult = await studyService.checkStudyPassword(id, password);
+
+    if (!checkResult.ok && checkResult.reason === "NOT_FOUND") {
+      return res.status(404).send({
+        result: "fail",
+        message: "해당 스터디를 찾을 수 없습니다.",
+        data: null,
+      });
+    }
+
+    if (!checkResult.ok && checkResult.reason === "WRONG_PASSWORD") {
+      return res.status(403).send({
+        result: "fail",
+        message: "비밀번호가 일치하지 않습니다.",
+        data: null,
+      });
+    }
+
+    // 3. 응답 반환
+    return res.status(200).send({
+      result: "success",
+      message: "비밀번호가 확인되었습니다.",
+      data: {
+        studyId: checkResult.study.studyId,
+        nickname: checkResult.study.nickname,
+        title: checkResult.study.title,
+      },
+    });
+  } catch (error) {
+    next(error);
   }
 }
 

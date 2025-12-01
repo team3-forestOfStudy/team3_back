@@ -220,7 +220,7 @@ export async function verifyStudyPassword(req, res, next) {
     // 3. 응답 반환
     return res.status(200).send({
       result: "success",
-      message: "비밀번호가 확인되었습니다.",
+      message: "비밀번호가 확인되었습니다!",
       data: {
         studyId: checkResult.study.studyId,
         nickname: checkResult.study.nickname,

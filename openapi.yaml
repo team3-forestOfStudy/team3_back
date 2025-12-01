@@ -14,8 +14,10 @@ info:
     - Habit (습관 CRUD + 오늘의 습관 조회/체크)
 
 servers:
+  - url: https://team3-forest-study-backend.onrender.com
+    description: Render 배포 서버 🌳
   - url: http://localhost:4000
-    description: 로컬 개발 서버
+    description: 로컬 개발 서버 💻
 
 tags:
   - name: Health

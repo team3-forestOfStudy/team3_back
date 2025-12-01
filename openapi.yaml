@@ -1425,7 +1425,7 @@ components:
           example: success
         message:
           type: string
-          example: 습관 요청이 성공적으로 처리되었습니다!
+          example: 습관이 성공적으로 생성되었습니다!
         data:
           $ref: "#/components/schemas/Habit"
 
@@ -1536,14 +1536,6 @@ components:
             habitId:
               type: integer
               example: 3
-            todayKey:
-              type: string
-              example: wed
-              description: 오늘 요일의 필드명 (sun~sat)
-            isChecked:
-              type: boolean
-              example: true
-              description: 오늘 기준 체크 여부
             sun:
               type: boolean
               example: false

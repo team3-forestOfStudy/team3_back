@@ -99,15 +99,17 @@ export async function createHabit(req, res, next) {
 // 📘 습관 수정 컨트롤러 (PATCH /api/studies/:studyId/habits/:habitId)
 export async function updateHabit(req, res, next) {
   try {
-    const { habitId } = req.params;
+    const { studyId, habitId } = req.params; // ⭐ studyId 추가
     const { name } = req.body;
 
-    // 1. 유효성 검사 - habitId 숫자 체크
-    const id = Number(habitId);
-    if (Number.isNaN(id)) {
+    // 1. 유효성 검사 - studyId, habitId 숫자 체크 ⭐
+    const parsedStudyId = Number(studyId); // ⭐ 새로 추가
+    const parsedHabitId = Number(habitId);
+
+    if (Number.isNaN(parsedStudyId) || Number.isNaN(parsedHabitId)) {
       return res.status(400).send({
         result: "fail",
-        message: "잘못된 요청입니다. habitId는 숫자여야 합니다!",
+        message: "studyId와 habitId는 숫자여야 합니다!",
         data: null,
       });
     }
@@ -123,15 +125,16 @@ export async function updateHabit(req, res, next) {
 
     // 3. service 호출 → DB에서 습관 수정
     const updatedHabit = await habitService.updateHabit({
-      habitId: id,
+      studyId: parsedStudyId,
+      habitId: parsedHabitId,
       name: name.trim(),
     });
 
-    // 4. 습관이 없는 경우
+    // 4. 습관이 없는 경우 (해당 스터디에 속하지 않거나, 존재 X)
     if (!updatedHabit) {
       return res.status(404).send({
         result: "fail",
-        message: "해당 습관을 찾을 수 없습니다.",
+        message: "해당 스터디에서 해당 습관을 찾을 수 없습니다.",
         data: null,
       });
     }

@@ -236,15 +236,20 @@ export async function updateTodayHabitCheck(req, res, next) {
     const { studyId, habitId } = req.params;
     const { isChecked } = req.body;
 
-    const id = Number(habitId);
-    if (Number.isNaN(id)) {
+    // studyId와 habitId 모두 숫자로 변환 후 변수 선언
+    const parsedStudyId = Number(studyId);
+    const parsedHabitId = Number(habitId);
+
+    // 1. studyId, habitId 숫자 유효성 검사 (두 ID 모두)
+    if (Number.isNaN(parsedStudyId) || Number.isNaN(parsedHabitId)) {
       return res.status(400).send({
         result: "fail",
-        message: "habitId는 숫자여야 합니다.",
+        message: "studyId와 habitId는 숫자여야 합니다.",
         data: null,
       });
     }
 
+    // 2. isChecked 타입 검사
     if (typeof isChecked !== "boolean") {
       return res.status(400).send({
         result: "fail",
@@ -253,12 +258,14 @@ export async function updateTodayHabitCheck(req, res, next) {
       });
     }
 
+    // 3. 오늘 체크 상태 업데이트 (✅ 선언된 변수 사용)
     const updatedCheck = await habitService.updateTodayHabitCheck({
       studyId: parsedStudyId,
       habitId: parsedHabitId,
       isChecked,
     });
 
+    // 4. 응답
     return res.status(200).send({
       result: "success",
       message: "오늘의 습관 체크 상태가 업데이트되었습니다!",

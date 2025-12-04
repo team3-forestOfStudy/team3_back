@@ -12,6 +12,17 @@ const ALLOWED_BACKGROUND_IMAGES = [
   "leaf",
 ];
 
+// 🔬 길이 유효성 검사 유틸 함수
+function isValidLength(value, min, max) {
+  if (typeof value !== "string") return false;
+  const len = value.trim().length;
+  return len >= min && len <= max;
+}
+
+// 🔐 비밀번호 규칙 상수
+const PASSWORD_MIN_LENGTH = 6;
+const PASSWORD_SPECIAL_CHAR_REGEX = /[^A-Za-z0-9]/; // 특수문자 1개 이상 포함
+
 // 📘 스터디 생성 컨트롤러 (POST /api/studies)
 export async function createStudy(req, res, next) {
   try {
@@ -24,25 +35,73 @@ export async function createStudy(req, res, next) {
       passwordConfirm,
     } = req.body;
 
+    const trimmedNickname = nickname?.trim();
+    const trimmedTitle = title?.trim();
+    const trimmedDescription = description?.trim();
+    const trimmedPassword = password?.trim();
+    const trimmedPasswordConfirm = passwordConfirm?.trim();
+
     // 1. 유효성 검사
     if (
-      !nickname?.trim() ||
-      !title?.trim() ||
-      !password?.trim() ||
-      !passwordConfirm?.trim()
+      !trimmedNickname ||
+      !trimmedTitle ||
+      !trimmedDescription ||
+      !trimmedPassword ||
+      !trimmedPasswordConfirm
     ) {
       return res.status(400).send({
         result: "fail",
         message:
-          "닉네임, 스터디 이름, 비밀번호, 비밀번호 확인은 필수로 작성해야합니다.",
+          "닉네임, 스터디 이름, 소개, 비밀번호, 비밀번호 확인은 필수로 작성해야합니다.",
         data: null,
       });
     }
 
-    if (password !== passwordConfirm) {
+    // 닉네임 길이 검사: 2~8글자
+    if (!isValidLength(trimmedNickname, 2, 8)) {
+      return res.status(400).send({
+        result: "fail",
+        message: "닉네임은 2글자 이상 8글자 이하여야 합니다.",
+        data: null,
+      });
+    }
+
+    // 스터디 제목 길이 검사: 2~16글자
+    if (!isValidLength(trimmedTitle, 2, 16)) {
+      return res.status(400).send({
+        result: "fail",
+        message: "스터디 제목은 2글자 이상 16글자 이하여야 합니다.",
+        data: null,
+      });
+    }
+
+    // 소개 길이 검사: 2~200글자
+    if (!isValidLength(trimmedDescription, 2, 200)) {
+      return res.status(400).send({
+        result: "fail",
+        message: "설명은 2글자 이상 200글자 이하여야 합니다.",
+        data: null,
+      });
+    }
+
+    // 비밀번호/비밀번호 확인 일치 여부
+    if (trimmedPassword !== trimmedPasswordConfirm) {
       return res.status(400).send({
         result: "fail",
         message: "비밀번호와 비밀번호 확인이 일치하지 않습니다.",
+        data: null,
+      });
+    }
+
+    // 비밀번호 규칙: 최소 6글자 + 특수문자 최소 1개
+    if (
+      trimmedPassword.length < PASSWORD_MIN_LENGTH ||
+      !PASSWORD_SPECIAL_CHAR_REGEX.test(trimmedPassword)
+    ) {
+      return res.status(400).send({
+        result: "fail",
+        message:
+          "비밀번호는 최소 6글자 이상이며 특수문자를 최소 1개 포함해야 합니다.",
         data: null,
       });
     }
@@ -60,11 +119,11 @@ export async function createStudy(req, res, next) {
 
     // 2. service 호출 → DB에 스터디 생성
     const newStudy = await studyService.createStudy({
-      nickname,
-      title,
-      description,
+      nickname: trimmedNickname,
+      title: trimmedTitle,
+      description: trimmedDescription,
       backgroundImage,
-      password, // service에서 암호화!
+      password: trimmedPassword, // service에서 암호화!
     });
 
     // 3. 응답 반환 (비밀번호 관련 정보는 절대 보내지 않기!)
@@ -190,7 +249,8 @@ export async function verifyStudyPassword(req, res, next) {
     }
 
     // 비밀번호 필수 검사
-    if (!password?.trim()) {
+    const trimmedPassword = password?.trim();
+    if (!trimmedPassword) {
       return res.status(400).send({
         result: "fail",
         message: "비밀번호를 입력해주세요.",
@@ -199,7 +259,10 @@ export async function verifyStudyPassword(req, res, next) {
     }
 
     // 2. 권한 확인
-    const checkResult = await studyService.checkStudyPassword(id, password);
+    const checkResult = await studyService.checkStudyPassword(
+      id,
+      trimmedPassword
+    );
 
     if (!checkResult.ok && checkResult.reason === "NOT_FOUND") {
       return res.status(404).send({
@@ -251,12 +314,51 @@ export async function updateStudy(req, res, next) {
     }
 
     // 수정 시 비밀번호 입력은 필수
-    if (!password?.trim()) {
+    const trimmedPassword = password?.trim();
+    if (!trimmedPassword) {
       return res.status(400).send({
         result: "fail",
         message: "수정을 위해 비밀번호를 입력해주세요",
         data: null,
       });
+    }
+
+    // 수정 시: 각 필드가 "보내졌다면" 프론트와 같은 길이 규칙 적용
+    let trimmedNickname = nickname;
+    let trimmedTitle = title;
+    let trimmedDescription = description;
+
+    if (nickname !== undefined) {
+      trimmedNickname = nickname.trim();
+      if (!isValidLength(trimmedNickname, 2, 8)) {
+        return res.status(400).send({
+          result: "fail",
+          message: "닉네임은 2글자 이상 8글자 이하여야 합니다.",
+          data: null,
+        });
+      }
+    }
+
+    if (title !== undefined) {
+      trimmedTitle = title.trim();
+      if (!isValidLength(trimmedTitle, 2, 16)) {
+        return res.status(400).send({
+          result: "fail",
+          message: "스터디 제목은 2글자 이상 16글자 이하여야 합니다.",
+          data: null,
+        });
+      }
+    }
+
+    if (description !== undefined) {
+      trimmedDescription = description.trim();
+      if (!isValidLength(trimmedDescription, 2, 200)) {
+        return res.status(400).send({
+          result: "fail",
+          message: "설명은 2글자 이상 200글자 이하여야 합니다.",
+          data: null,
+        });
+      }
     }
 
     // 수정할 값이 하나라도 있는지 체크 (nickname, title, description, backgroundImage 중에서)
@@ -286,7 +388,10 @@ export async function updateStudy(req, res, next) {
     }
 
     // 2. 권한 확인
-    const checkPassword = await studyService.checkStudyPassword(id, password);
+    const checkPassword = await studyService.checkStudyPassword(
+      id,
+      trimmedPassword
+    );
 
     if (!checkPassword.ok && checkPassword.reason === "NOT_FOUND") {
       return res.status(404).send({
@@ -306,9 +411,9 @@ export async function updateStudy(req, res, next) {
 
     // 3. DB 수정 처리
     const updatedData = await studyService.updateStudy(id, {
-      nickname,
-      title,
-      description,
+      nickname: trimmedNickname,
+      title: trimmedTitle,
+      description: trimmedDescription,
       backgroundImage,
     });
 
@@ -351,7 +456,8 @@ export async function deleteStudy(req, res, next) {
     }
 
     // 삭제 시 비밀번호 입력은 필수
-    if (!password?.trim()) {
+    const trimmedPassword = password?.trim();
+    if (!trimmedPassword) {
       return res.status(400).send({
         result: "fail",
         message: "삭제를 위해 비밀번호를 입력해주세요",
@@ -360,7 +466,10 @@ export async function deleteStudy(req, res, next) {
     }
 
     // 2. 권한 확인
-    const checkPassword = await studyService.checkStudyPassword(id, password);
+    const checkPassword = await studyService.checkStudyPassword(
+      id,
+      trimmedPassword
+    );
 
     if (!checkPassword.ok && checkPassword.reason === "NOT_FOUND") {
       return res.status(404).send({

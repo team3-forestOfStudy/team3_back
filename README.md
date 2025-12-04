@@ -220,7 +220,27 @@ npm run dev
 
 ---
 
-## ⛔ 11. Error Handling 정책
+## 📊 11. 서버 모니터링 & Status Page
+
+본 서버는 Render 무료 플랜을 사용하고 있어 일정 시간 요청이 없으면 Sleep 모드로 전환될 수 있습니다.
+UptimeRobot으로 주기적 헬스 체크를 설정하여 서버가 안정적으로 유지되도록 구성했습니다.
+
+### 서버 상태 확인 (Status Page)
+
+아래 링크에서 현재 서버 상태(Up/Down), 최근 장애 기록, 가동률을 확인할 수 있습니다.
+
+🔗 Status Page: https://stats.uptimerobot.com/51Jnwwlm9U
+
+#### 활용 방법
+
+- 프론트에서 API 호출이 갑자기 지연되거나 실패할 때
+  → 먼저 Status Page에서 서버 상태를 확인
+- 배포 서버의 안정성(Availability) 모니터링
+- 팀원 간 공통 레퍼런스로 활용하여 장애 파악 시간 단축
+
+---
+
+## ⛔ 12. Error Handling 정책
 
 공통 에러 응답 규칙
 | Status | 상황 | 공통 응답 형식 |
@@ -232,7 +252,7 @@ npm run dev
 
 ---
 
-## 🔐 12. 비밀번호 처리 정책
+## 🔐 13. 비밀번호 처리 정책
 
 - 비밀번호는 Bcrypt로 해싱하여 저장됩니다.
 - 수정/삭제/비밀번호 검증 시 모든 비교는 Bcrypt.compare 사용

@@ -71,10 +71,10 @@ paths:
                 $ref: "#/components/schemas/FailResponse"
               examples:
                 missingRequired:
-                  summary: "필수 값(nickname/title/password/passwordConfirm) 누락"
+                  summary: "필수 값(nickname/title/description/password/passwordConfirm) 누락"
                   value:
                     result: fail
-                    message: "닉네임, 스터디 이름, 비밀번호, 비밀번호 확인은 필수로 작성해야합니다."
+                    message: "닉네임, 스터디 이름, 소개, 비밀번호, 비밀번호 확인은 필수로 작성해야합니다."
                     data: null
                 passwordMismatch:
                   summary: "비밀번호와 비밀번호 확인이 일치하지 않을 때"
@@ -197,7 +197,10 @@ paths:
     patch:
       tags: [Study]
       summary: 스터디 수정
-      description: 닉네임/제목/설명/배경 이미지를 수정합니다. **비밀번호가 일치해야 수정 가능합니다.**
+      description: >
+        닉네임/제목/설명/배경 이미지를 수정합니다.
+        닉네임(2~8글자), 제목(2~16글자), 설명(2~200글자) 규칙이 적용되며,
+        비밀번호가 일치해야 수정 가능합니다.
       parameters:
         - in: path
           name: studyId
@@ -301,7 +304,7 @@ paths:
               properties:
                 password:
                   type: string
-                  example: "1234"
+                  example: "abc123!"
                   description: 스터디를 삭제하기 위한 비밀번호
       responses:
         "200":
@@ -915,20 +918,26 @@ components:
 
     CreateStudyRequest:
       type: object
-      required: [nickname, title, password, passwordConfirm]
+      required: [nickname, title, description, password, passwordConfirm]
       properties:
         nickname:
           type: string
+          minLength: 2
+          maxLength: 8
           example: 수진
-          description: 스터디를 생성하는 사용자의 닉네임
+          description: 스터디를 생성하는 사용자의 닉네임 (2~8글자)
         title:
           type: string
+          minLength: 2
+          maxLength: 16
           example: 스터디 생성 API 작성
-          description: 스터디의 제목
+          description: 스터디의 제목 (2~16글자)
         description:
           type: string
+          minLength: 2
+          maxLength: 200
           example: 스터디 생성 API를 만들고 있습니다.
-          description: 스터디의 상세 설명 (선택 사항)
+          description: 스터디의 상세 설명 (2~200글자)
         backgroundImage:
           type: string
           description: 허용되는 배경 이미지 값만 사용 가능
@@ -945,12 +954,15 @@ components:
         password:
           type: string
           format: password
-          example: "1234"
-          description: 스터디 수정/삭제에 사용될 비밀번호
+          minLength: 6
+          example: "abc123!"
+          description: >
+            스터디 수정/삭제에 사용될 비밀번호
+            최소 6글자이며 특수문자를 최소 1개 포함해야 합니다
         passwordConfirm:
           type: string
           format: password
-          example: "1234"
+          example: "abc123!"
           description: 비밀번호 확인용 필드 (서버에서 일치 여부 확인)
 
     StudyBase:
@@ -1195,15 +1207,21 @@ components:
       properties:
         nickname:
           type: string
-          description: 수정할 닉네임 (선택 사항)
+          minLength: 2
+          maxLength: 8
+          description: 수정할 닉네임 (선택 사항, 2~8글자)
           example: 새로운 닉네임
         title:
           type: string
-          description: 수정할 제목 (선택 사항)
+          minLength: 2
+          maxLength: 16
+          description: 수정할 제목 (선택 사항, 2~16글자)
           example: 스터디 제목 수정 테스트
         description:
           type: string
-          description: 수정할 설명 (선택 사항)
+          minLength: 2
+          maxLength: 200
+          description: 수정할 설명 (선택 사항, 2~200글자)
           example: 스터디 설명을 이렇게 바꿔봅니다.
         backgroundImage:
           type: string
@@ -1220,7 +1238,8 @@ components:
           example: workspace_1
         password:
           type: string
-          example: "1234"
+          minLength: 6
+          example: "abc123!"
           description: 필수 / 수정 권한 확인을 위한 비밀번호
 
     UpdateStudySuccessResponse:
@@ -1262,7 +1281,7 @@ components:
       properties:
         password:
           type: string
-          example: "1234"
+          example: "abc123!"
           description: 확인할 비밀번호
 
     VerifyPasswordSuccessResponse:

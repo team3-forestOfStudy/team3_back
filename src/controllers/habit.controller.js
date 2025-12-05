@@ -47,9 +47,9 @@ export async function getStudyHabits(req, res, next) {
 export async function createHabit(req, res, next) {
   try {
     const { studyId } = req.params;
-    const { name } = req.body;
+    const { names } = req.body; // 여러 개의 습관 이름들을 배열로 전달받음
 
-    // 1. 유효성 검사 - studyId 숫자 체크
+    // 1. studyId 숫자 검사
     const id = Number(studyId);
     if (Number.isNaN(id)) {
       return res.status(400).send({
@@ -59,9 +59,8 @@ export async function createHabit(req, res, next) {
       });
     }
 
-    // 2. 스터디 존재 여부 + 삭제 여부 체크
+    // 2. 스터디 존재 여부 확인
     const study = await studyService.findActiveStudyById(id);
-
     if (!study || study.status === "DELETED") {
       return res.status(404).send({
         result: "fail",
@@ -70,26 +69,44 @@ export async function createHabit(req, res, next) {
       });
     }
 
-    // 3. 유효성 검사 - 습관 이름 필수
-    if (!name?.trim()) {
+    // 3. names가 배열인지 확인
+    if (!Array.isArray(names) || names.length === 0) {
       return res.status(400).send({
         result: "fail",
-        message: "습관 이름은 필수로 작성해야 합니다.",
+        message: "습관 이름 목록(names)은 빈 배열일 수 없습니다.",
         data: null,
       });
     }
 
-    // 4. service 호출 → DB에 습관 생성
-    const newHabit = await habitService.createHabit({
-      studyId: id,
-      name: name.trim(),
-    });
+    // 4. 유효한 습관 이름만 남기기
+    const validNames = names
+      .map((name) => name && name.trim()) // 공백 제거
+      .filter((name) => !!name); // 빈값(null, "", " ") 제거
 
-    // 5. 응답
+    //  잘못된 데이터 받지 않기
+    if (validNames.length === 0) {
+      return res.status(400).send({
+        result: "fail",
+        message: "모든 습관 이름은 공백이 아닌 문자열이어야 합니다.",
+        data: null,
+      });
+    }
+
+    // 5. 순차적으로 습관 생성
+    const newHabits = [];
+    for (const name of validNames) {
+      const newHabit = await habitService.createHabit({
+        studyId: id,
+        name,
+      });
+      newHabits.push(newHabit); // 만든 순서 그대로 push
+    }
+
+    // 6. 응답
     return res.status(201).send({
       result: "success",
-      message: "습관이 성공적으로 생성되었습니다!",
-      data: newHabit,
+      message: "습관들이 성공적으로 생성되었습니다!",
+      data: newHabits, // 배열로 반환
     });
   } catch (error) {
     next(error);
@@ -102,7 +119,7 @@ export async function updateHabit(req, res, next) {
     const { studyId, habitId } = req.params; // ⭐ studyId 추가
     const { name } = req.body;
 
-    // 1. 유효성 검사 - studyId, habitId 숫자 체크 ⭐
+    // 1. 유효성 검사 - studyId, habitId 숫자 체크
     const parsedStudyId = Number(studyId); // ⭐ 새로 추가
     const parsedHabitId = Number(habitId);
 
